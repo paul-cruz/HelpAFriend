@@ -151,4 +151,15 @@ export class Contract {
     return p.join(",");
   }
 
+  getFriends(): string {
+    const user = people.get(Context.sender);
+    if (!user) {
+      logging.log("User not registered in the network");
+      return "";
+    }
+
+    let friends = user.friends.values();
+    return friends.join(",");
+  }
+
 }
