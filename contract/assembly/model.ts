@@ -4,13 +4,13 @@ import { PersistentSet, PersistentUnorderedMap } from "near-sdk-as";
 export class Person {
     accountId: string;
     friends: PersistentSet<string>;
-    projects: PersistentUnorderedMap<string, Project>;
+    projects: PersistentSet<string>;
 
     constructor(
         accountId: string) {
         this.accountId = accountId;
         this.friends = new PersistentSet<string>(accountId + "_friends");
-        this.projects = new PersistentUnorderedMap<string, Project>(accountId + "_projects");
+        this.projects = new PersistentSet<string>(accountId + "_projects");
     }
 
     addFriend(accountId: string): void {
@@ -18,7 +18,7 @@ export class Person {
     }
 
     getProjects(): Array<string> {
-        return this.projects.keys();
+        return this.projects.values();
     }
 }
 
@@ -55,4 +55,5 @@ export class Project {
 }
 
 export let publicProjects = new PersistentUnorderedMap<string, Project>("publicProjects");
+export let privateProjects = new PersistentUnorderedMap<string, Project>("privateProjects");
 export let people = new PersistentUnorderedMap<string, Person>("peopleInNet");

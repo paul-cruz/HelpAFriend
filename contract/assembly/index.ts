@@ -1,6 +1,6 @@
 import { logging } from "near-sdk-as";
 import { Context } from "near-sdk-core"
-import { people, Person, Project, publicProjects } from "./model"
+import { people, Person, privateProjects, Project, publicProjects } from "./model"
 
 @nearBindgen
 export class Contract {
@@ -23,12 +23,15 @@ export class Contract {
       return false;
     }
 
+    user.projects.add(name);
+
     var newProject = new Project(name, Context.sender, description, goal, isPublic);
     if (isPublic) {
       publicProjects.set(name, newProject);
       logging.log("public created");
     }
-    //user.projects.set(name, newProject);
+
+    privateProjects.set(name, newProject);
     return true;
   }
 
@@ -74,9 +77,35 @@ export class Contract {
       return null;
     }
     const friend = people.getSome(friendId);
+    logging.log(friend.projects);
 
     let projects = friend.getProjects();
+    logging.log(projects);
     return projects.join(",");
+  }
+
+  getFriendProject(friendId: string, name: string): string | null {
+    const user = people.get(Context.sender);
+    if (!user) {
+      logging.log("User not registered in the network");
+      return null;
+    }
+
+    if (!user.friends.has(friendId)) {
+      logging.log("Friend doesn't exist");
+      return null;
+    }
+    const friend = people.getSome(friendId);
+    if (!friend.projects.has(name)) {
+      logging.log("Friend doesn't have that project");
+      return null;
+    }
+
+    let project: Project | null = privateProjects.get(name);
+    if (project == null) {
+      return "No project found";
+    }
+    return project.get();
   }
 
   donatePublicProject(name: string, amount: u64): bool {
@@ -87,26 +116,33 @@ export class Contract {
     }
 
     project.donate(amount);
-    if (project.isPublic) {
-      publicProjects.set(name, project);
-    }
+    publicProjects.set(name, project);
     return true;
   }
 
-  donateFriendProject(name: string, amount: u64): bool {
+  donateFriendProject(friendId: string, name: string, amount: u64): bool {
     const user = people.get(Context.sender);
-    if (!user) {
+    const friend = people.get(friendId);
+    if (!user || !friend) {
       logging.log("User not registered in the network");
       return false;
     }
 
-    const project = user.projects.get(name);
-    if (!project) {
+    const isFriend = user.friends.has(friendId);
+    if (!isFriend) {
+      logging.log("User is not your friend");
+      return false;
+    }
+
+    const projectExists = friend.projects.has(name);
+    if (!projectExists) {
       logging.log("Project doesn't exist");
       return false;
     }
 
+    var project = privateProjects.getSome(name);
     project.donate(amount);
+    privateProjects.set(name, project);
     return true;
   }
 
